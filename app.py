@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 import os
 import requests
@@ -20,22 +20,20 @@ def init_api_keys():
     
     try:
         # Google Generative AI API key
-        google_api_key = os.getenv("AIzaSyCR7Rg4Y1mxqVH-nYMIGtiEv7a-zt-hB-M")
-        if google_api_key:
+        api_key = os.getenv("AIzaSyCR7Rg4Y1mxqVH-nYMIGtiEv7a-zt-hB-M")
+        if api_key:
             genai.configure(api_key='AIzaSyCR7Rg4Y1mxqVH-nYMIGtiEv7a-zt-hB-M')
         else:
             raise ValueError("Google API key not found in environment variables.")
     except Exception as e:
-        raise RuntimeError(f"Error initializing Google API key: {e}")
-    
-    # Check for FAL API key
+        raise RuntimeError(f"Error initializing API keys: {e}")
+
+def generate_image(prompt):
+    # FAL API key
     fal_api_key = os.getenv("d84d9857-17de-456d-a3c9-bb4d7b9974da:3482b708facf19e192e92d02878196db")
     if not fal_api_key:
         raise ValueError("FAL API key not found in environment variables.")
     
-    return fal_api_key
-
-def generate_image(prompt, fal_api_key):
     # Use fal-client to generate the image
     handler = fal_client.submit(
         "fal-ai/flux/schnell",
@@ -53,7 +51,7 @@ def generate_image(prompt, fal_api_key):
         img.save(img_path)
         return img_path, prompt
     else:
-        raise HTTPException(status_code=response.status_code, detail="Failed to download image.")
+        raise Exception(f"Failed to download image. Status code: {response.status_code}")
 
 def generate_response(prompt: str):
     # Generate a response from Google Generative AI model
@@ -65,7 +63,7 @@ def generate_response(prompt: str):
     }
     
     model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest", generation_config=generation_config)
-    prompt_parts = [f"Without any added explanations, just write an Arabic proverb about an image that contains: {prompt}"]
+    prompt_parts = [f"without any added explanations, just write an Arabic proverb about image contains: {prompt}"]
 
     try:
         response = model.generate_content(prompt_parts)
@@ -107,31 +105,23 @@ def add_stylish_text(image_path, text, font_path, output_path):
 async def root():
     return {"message": "Welcome to the image generation API"}
 
+@app.head("/")
+async def head_root():
+    return
+
 @app.post("/generate_image/")
 async def create_image(item: Item):
     # Initialize API keys
-    try:
-        fal_api_key = init_api_keys()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    init_api_keys()
     
     # Generate image and get the prompt
-    try:
-        image_path, prompt_used = generate_image(item.prompt, fal_api_key)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Image generation failed: {e}")
+    image_path, prompt_used = generate_image(item.prompt)
     
     # Generate Arabic proverb
-    try:
-        arabic_proverb = generate_response(prompt_used)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Proverb generation failed: {e}")
+    arabic_proverb = generate_response(prompt_used)
     
     # Add styled Arabic proverb to the image
-    try:
-        output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "final_image_with_text.jpg")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to add text to image: {e}")
+    output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "final_image_with_text.jpg")
     
     # Return the path of the generated image and the proverb
     return {"image_path": output_image_path, "proverb": arabic_proverb}
