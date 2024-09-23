@@ -7,9 +7,19 @@ from io import BytesIO
 import fal_client
 import google.generativeai as genai
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize the FastAPI app
 app = FastAPI()
+
+# Allow CORS for all origins (adjust as needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can specify the allowed origins here
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Item(BaseModel):
     prompt: str
