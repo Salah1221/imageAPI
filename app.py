@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 import requests
@@ -14,30 +14,28 @@ app = FastAPI()
 class Item(BaseModel):
     prompt: str
 
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to the image generation API!"}
-
 def init_api_keys():
     # Load environment variables from .env file
     load_dotenv()
     
     try:
         # Google Generative AI API key
-        api_key = os.getenv("API_KEY")  # Use a proper key name
-        if api_key:
-            genai.configure(api_key=api_key)
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        if google_api_key:
+            genai.configure(api_key=google_api_key)
         else:
             raise ValueError("Google API key not found in environment variables.")
     except Exception as e:
-        raise RuntimeError(f"Error initializing API keys: {e}")
-
-def generate_image(prompt):
-    # FAL API key
-    fal_api_key = os.getenv("FAL_API_KEY")  # Use a proper key name
+        raise RuntimeError(f"Error initializing Google API key: {e}")
+    
+    # Check for FAL API key
+    fal_api_key = os.getenv("FAL_API_KEY")
     if not fal_api_key:
         raise ValueError("FAL API key not found in environment variables.")
     
+    return fal_api_key
+
+def generate_image(prompt, fal_api_key):
     # Use fal-client to generate the image
     handler = fal_client.submit(
         "fal-ai/flux/schnell",
@@ -55,7 +53,7 @@ def generate_image(prompt):
         img.save(img_path)
         return img_path, prompt
     else:
-        raise Exception(f"Failed to download image. Status code: {response.status_code}")
+        raise HTTPException(status_code=response.status_code, detail="Failed to download image.")
 
 def generate_response(prompt: str):
     # Generate a response from Google Generative AI model
@@ -67,7 +65,7 @@ def generate_response(prompt: str):
     }
     
     model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest", generation_config=generation_config)
-    prompt_parts = [f"without any added explanations, just write an Arabic proverb about image contains: {prompt}"]
+    prompt_parts = [f"Without any added explanations, just write an Arabic proverb about an image that contains: {prompt}"]
 
     try:
         response = model.generate_content(prompt_parts)
@@ -105,19 +103,35 @@ def add_stylish_text(image_path, text, font_path, output_path):
     img.save(output_path)
     return output_path
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the image generation API"}
+
 @app.post("/generate_image/")
 async def create_image(item: Item):
     # Initialize API keys
-    init_api_keys()
+    try:
+        fal_api_key = init_api_keys()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
     # Generate image and get the prompt
-    image_path, prompt_used = generate_image(item.prompt)
+    try:
+        image_path, prompt_used = generate_image(item.prompt, fal_api_key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image generation failed: {e}")
     
     # Generate Arabic proverb
-    arabic_proverb = generate_response(prompt_used)
+    try:
+        arabic_proverb = generate_response(prompt_used)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proverb generation failed: {e}")
     
     # Add styled Arabic proverb to the image
-    output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "final_image_with_text.jpg")
+    try:
+        output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "final_image_with_text.jpg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add text to image: {e}")
     
     # Return the path of the generated image and the proverb
     return {"image_path": output_image_path, "proverb": arabic_proverb}
