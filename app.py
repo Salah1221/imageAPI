@@ -32,7 +32,7 @@ def init_api_keys():
         # Google Generative AI API key
         api_key = os.getenv("Google_API")
         if api_key:
-            genai.configure(api_key)
+            genai.configure(api_key=api_key)
         else:
             raise ValueError("Google API key not found in environment variables.")
     except Exception as e:
