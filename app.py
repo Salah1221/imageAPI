@@ -40,7 +40,7 @@ def init_api_keys():
 
 def generate_image(prompt):
     # FAL API key
-    fal_api_key = os.getenv("d84d9857-17de-456d-a3c9-bb4d7b9974da:3482b708facf19e192e92d02878196db")
+    fal_api_key = os.getenv("Fal_API")
     if not fal_api_key:
         raise ValueError("FAL API key not found in environment variables.")
     
