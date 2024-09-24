@@ -33,7 +33,13 @@
       cursor: pointer;
     }
 
-    button:hover {
+    button:disabled {
+      background-color: lightgray;
+      cursor: not-allowed;
+      color: gray;
+    }
+
+    button:hover:not(:disabled) {
       background-color: #45a049;
     }
 
@@ -62,41 +68,47 @@
   <script>
     async function generateImage() {
       const button = document.getElementById("generate");
-      const prompt = document.getElementById("prompt").value;
-      if (!prompt) {
-        alert("Please enter a prompt.");
-        return;
-      }
+      try {
+        const prompt = document.getElementById("prompt").value;
+        if (!prompt) {
+          alert("Please enter a prompt.");
+          return;
+        }
 
-      document.getElementById("output").innerHTML = "Generating image...";
+        document.getElementById("output").innerHTML = "Generating image...";
 
-      button.disabled = "true";
+        button.disabled = true;
 
-      const response = await fetch("http://localhost:8000/generate_image/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ prompt: prompt })
-      });
+        const response = await fetch("http://localhost:8000/generate_image/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ prompt: prompt })
+        });
 
-      button.disabled = "false";
 
-      if (!response.ok) {
-        document.getElementById("output").innerHTML = "Error generating image. Please try again.";
-        return;
-      }
+        if (!response.ok) {
+          document.getElementById("output").innerHTML = "Error generating image. Please try again.";
+          return;
+        }
 
-      const data = await response.json();
-      console.log(data);
-      const imagePath = data.image_path;
-      const proverb = data.proverb;
+        const data = await response.json();
+        button.disabled = false;
+        console.log(data);
+        const imagePath = data.image_path;
+        const proverb = data.proverb;
 
-      document.getElementById("output").innerHTML = `
+        document.getElementById("output").innerHTML = `
             <h2>Generated Proverb:</h2>
             <p>${proverb}</p>
             <img src="${imagePath}" alt="Generated Image">
         `;
+      } catch (error) {
+        console.error(error);
+        document.getElementById("output").innerHTML = "Error generating image. Please try again.";
+        button.disabled = false;
+      }
     }
   </script>
 
