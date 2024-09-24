@@ -54,13 +54,14 @@
   <div class="container">
     <h1>Generate an Image with a Proverb</h1>
     <input type="text" id="prompt" placeholder="Enter your image prompt here">
-    <button onclick="generateImage()">Generate Image</button>
+    <button onclick="generateImage()" id="generate">Generate Image</button>
 
     <div class="output" id="output"></div>
   </div>
 
   <script>
     async function generateImage() {
+      const button = document.getElementById("generate");
       const prompt = document.getElementById("prompt").value;
       if (!prompt) {
         alert("Please enter a prompt.");
@@ -69,6 +70,8 @@
 
       document.getElementById("output").innerHTML = "Generating image...";
 
+      button.disabled = "true";
+
       const response = await fetch("http://localhost:8000/generate_image/", {
         method: "POST",
         headers: {
@@ -76,6 +79,8 @@
         },
         body: JSON.stringify({ prompt: prompt })
       });
+
+      button.disabled = "false";
 
       if (!response.ok) {
         document.getElementById("output").innerHTML = "Error generating image. Please try again.";

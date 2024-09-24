@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import time
+import textwrap
 
 if not os.path.exists("static"):
     os.makedirs("static")
@@ -94,32 +95,37 @@ def generate_response(prompt: str):
     except Exception as exception:
         return f"Error: {exception}"
 
-def add_stylish_text(image_path, text, font_path, output_path):
-    # Add styled text to the generated image
-    img = Image.open(image_path)
-    draw = ImageDraw.Draw(img)
+def add_stylish_text(image_path, text, font_path, output_image_path, margin=30, max_width=40, stroke_width=2):
+    # Open the image
+    image = Image.open(image_path)
+    draw = ImageDraw.Draw(image)
+    
+    # Load the font
+    font = ImageFont.truetype(font_path, size=40)
+    
+    # Wrap the text
+    wrapped_text = textwrap.fill(text, width=max_width)
+    
+    # Calculate text size and position
+    lines = wrapped_text.split('\n')
+    line_height = font.getbbox('A')[3] - font.getbbox('A')[1]
+    total_text_height = (line_height + margin + 10) * len(lines)
+    
+    image_width, image_height = image.size
+    y = image_height - total_text_height - margin
+    
+    # Draw each line of the wrapped text with stroke
+    for line in lines:
+        line_width = font.getbbox(line)[2] - font.getbbox(line)[0]
+        x = (image_width - line_width) // 2  # Center the text horizontally
+        draw.text((x, y), line, font=font, fill="white", stroke_width=stroke_width, stroke_fill="black")
+        y += line_height + margin
+    
+    # Save the image
+    image.save(output_image_path)
+    
+    return output_image_path
 
-    # Get image size
-    img_width, img_height = img.size
-    font_size = int(img_height / 10)
-
-    try:
-        # Use the font provided
-        font = ImageFont.truetype(font_path, size=font_size)
-    except IOError:
-        font = ImageFont.load_default()
-
-    text_position = (50, img_height - 100)
-    text_color = "white"
-
-    # Draw text with outline for visibility
-    outline_range = 2
-    for adj in [(0, 0), (outline_range, 0), (-outline_range, 0), (0, outline_range), (0, -outline_range)]:
-        draw.text((text_position[0] + adj[0], text_position[1] + adj[1]), text, fill="black", font=font)
-
-    draw.text(text_position, text, fill=text_color, font=font)
-    img.save(output_path)
-    return output_path
 
 @app.get("/")
 async def read_root(request: Request):
