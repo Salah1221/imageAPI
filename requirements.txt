@@ -6,4 +6,4 @@ Pillow
 fal-client
 google-generativeai
 python-dotenv
-
+gunicorn
