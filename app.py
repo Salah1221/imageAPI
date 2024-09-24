@@ -11,6 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+if not os.path.exists("static"):
+    os.makedirs("static")
+
 # Initialize the FastAPI app
 app = FastAPI()
 
