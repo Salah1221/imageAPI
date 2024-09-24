@@ -39,6 +39,7 @@ def init_api_keys():
         raise RuntimeError(f"Error initializing API keys: {e}")
 
 def generate_image(prompt):
+    load_dotenv()
     # FAL API key
     fal_api_key = os.getenv("Fal_API")
     if not fal_api_key:
