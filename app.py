@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import time
 
 if not os.path.exists("static"):
     os.makedirs("static")
@@ -66,7 +67,7 @@ def generate_image(prompt):
     response = requests.get(image_url)
     if response.status_code == 200:
         img = Image.open(BytesIO(response.content))
-        img_path = "generated_image.jpg"
+        img_path = f"static/final_image{time.time()}.jpg"
         img.save(img_path)
         return img_path, prompt
     else:
@@ -140,7 +141,7 @@ async def create_image(item: Item):
     arabic_proverb = generate_response(prompt_used)
     
     # Add styled Arabic proverb to the image
-    output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "static/final_image_with_text.jpg")
+    output_image_path = add_stylish_text(image_path, arabic_proverb, "static/Cairo-Black.ttf", image_path)
     
     # Return the path of the generated image and the proverb
     return {"image_path": output_image_path, "proverb": arabic_proverb}
