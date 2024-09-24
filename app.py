@@ -41,9 +41,9 @@ def init_api_keys():
 def generate_image(prompt):
     load_dotenv()
     # FAL API key
-    fal_api_key = os.getenv("Fal_API")
-    if not fal_api_key:
-        raise ValueError("FAL API key not found in environment variables.")
+    # fal_api_key = os.getenv("Fal_API")
+    # if not fal_api_key:
+    #     raise ValueError("FAL API key not found in environment variables.")
     
     # Use fal-client to generate the image
     handler = fal_client.submit(
