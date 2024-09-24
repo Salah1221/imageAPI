@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import os
 import requests
@@ -8,9 +8,14 @@ import fal_client
 import google.generativeai as genai
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 # Initialize the FastAPI app
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 # Allow CORS for all origins (adjust as needed)
 app.add_middleware(
@@ -113,8 +118,8 @@ def add_stylish_text(image_path, text, font_path, output_path):
     return output_path
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to the image generation API"}
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.head("/")
 async def head_root():
@@ -132,7 +137,7 @@ async def create_image(item: Item):
     arabic_proverb = generate_response(prompt_used)
     
     # Add styled Arabic proverb to the image
-    output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "final_image_with_text.jpg")
+    output_image_path = add_stylish_text(image_path, arabic_proverb, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "static/final_image_with_text.jpg")
     
     # Return the path of the generated image and the proverb
     return {"image_path": output_image_path, "proverb": arabic_proverb}
